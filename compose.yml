@@ -22,6 +22,21 @@ services:
       start_period: 20s
     restart: always
 
+  minio-setup:
+    image: minio/mc:RELEASE.2024-10-02T08-27-28Z
+    networks:
+      - shared_network
+    entrypoint: >
+      /bin/sh -c '
+      sleep 5;
+      /usr/bin/mc config host add s3 http://s3:9000 ${AWS_ACCESS_KEY_ID} ${AWS_SECRET_ACCESS_KEY} --api S3v4;
+      [[ ! -z "`/usr/bin/mc ls s3 | grep challenge`" ]] || /usr/bin/mc mb s3/mlflow;
+      /usr/bin/mc policy download s3/mlflow;
+      exit 0;
+      '
+    depends_on:
+      - minio
+
   db:
     image: postgres:16.4-bullseye
     ports:
@@ -51,16 +66,19 @@ services:
     ports:
       - "5001:5001"
     environment:
-      - MLFLOW_S3_ENDPOINT_URL=http://minio:9000
-      - AWS_ACCESS_KEY_ID=${MINIO_ROOT_USER}
-      - AWS_SECRET_ACCESS_KEY=${MINIO_ROOT_PASSWORD}
-    command: > 
+      MLFLOW_S3_ENDPOINT_URL: http://minio:9000
+      MLFLOW_S3_IGNORE_TLS: true
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+    command: >
       mlflow
       server
       --host 0.0.0.0
       --port 5001
       --backend-store-uri postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
-      --default-artifact-root s3://mlflow/
+      --serve-artifacts
+      --artifacts-destination s3://mlflow
+      --default-artifact-root s3://mlflow
     networks:
       - shared_network
     restart: always
