@@ -13,7 +13,8 @@ if [ -z "$container_id" ]; then
 fi
 
 docker exec -it $container_id mlflow gc \
-    --backend-store-uri postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+    --backend-store-uri postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB} \
+    --artifacts-destination s3://mlflow
 if [ $? -eq 0 ]; then
   echo "Garbage collection completed"
 else
