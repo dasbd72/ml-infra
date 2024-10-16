@@ -65,6 +65,8 @@ services:
       - db
     ports:
       - "5001:5001"
+    volumes:
+      - ~/container_persistent_volumes/${SERVICE_NAME}/mlflow-data-persist:/app
     environment:
       MLFLOW_S3_ENDPOINT_URL: http://minio:9000
       MLFLOW_S3_IGNORE_TLS: true
